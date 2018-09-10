@@ -6,10 +6,9 @@ import org.minigame.gamemode.GamemodeType;
 import org.minigame.gamemode.lobby.LobbyMapGamemode;
 import org.minigame.map.gamemode.MapGamemode;
 import org.minigame.map.truemap.playable.PlayingMap;
-import org.minigame.map.truemap.unplayable.UnreadyMap;
+import org.minigame.map.truemap.playable.ReadyToPlayMap;
 import org.minigame.plugin.MinigamePlugin;
 import org.minigame.running.midjoinable.AnytimeJoinRunningGame;
-import org.minigame.utils.MinigameWorldGenerator;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
@@ -32,7 +31,7 @@ public class PublicLobby extends RunningLobby implements AnytimeJoinRunningGame<
     protected Map<GamemodeType, Set<UUID>> gamemodeVotes = new HashMap<>();
     protected Map<MapGamemode, Set<UUID>> mapVotes = new HashMap<>();
 
-    public PublicLobby(PlayingMap map,
+    public PublicLobby(ReadyToPlayMap map,
                        LobbyMapGamemode gamemode,
                        TimeUnit timeUnitToVoteForGamemode,
                        int timeToVoteForGamemode,

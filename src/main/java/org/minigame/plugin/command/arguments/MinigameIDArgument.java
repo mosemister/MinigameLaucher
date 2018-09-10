@@ -28,7 +28,7 @@ public class MinigameIDArgument <T extends UniquieId> extends CommandElement {
     @Override
     protected T parseValue(CommandSource source, CommandArgs args) throws ArgumentParseException {
         String next = args.next();
-        Optional<T> opResult = MinigamePlugin.getUniquie(this.limitedTo).stream()
+        Optional<T> opResult = MinigamePlugin.getUniquieSet(this.limitedTo).stream()
                 .filter(f -> f.getId().equals(next.toLowerCase()) || f.getIdName().toLowerCase().equals(next.toLowerCase()))
                 .findFirst();
         if(opResult.isPresent()){
@@ -47,7 +47,7 @@ public class MinigameIDArgument <T extends UniquieId> extends CommandElement {
         }
         final String finalPeek = peek;
         List<String> list = new ArrayList<>();
-        MinigamePlugin.getUniquie(this.limitedTo).stream()
+        MinigamePlugin.getUniquieSet(this.limitedTo).stream()
                 //.filter(f -> f.getId().startsWith(peek.toLowerCase()) || f.getIdName().toLowerCase().startsWith(peek.toLowerCase()))
                 .filter(f -> {
                     String peeklc = finalPeek.toLowerCase();

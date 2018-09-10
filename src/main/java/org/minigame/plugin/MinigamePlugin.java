@@ -7,11 +7,7 @@ import org.minigame.data.invite.PlayerInviteData;
 import org.minigame.data.invite.PlayerInviteDataBuilder;
 import org.minigame.data.invite.PlayerInviteImmutableData;
 import org.minigame.gamemode.GamemodeType;
-import org.minigame.gamemode.lobby.DefaultLobbyUnplayableMap;
 import org.minigame.gamemode.lobby.LobbyListener;
-import org.minigame.gamemode.lobby.LobbyMapGamemode;
-import org.minigame.gamemode.lobby.LobbyType;
-import org.minigame.gamemode.lobby.requirements.PlayerLobbySpawnRequirement;
 import org.minigame.map.gamemode.MapGamemode;
 import org.minigame.map.truemap.MinigameMap;
 import org.minigame.map.truemap.PositionableMap;
@@ -22,7 +18,6 @@ import org.minigame.plugin.command.commands.LobbyCommand;
 import org.minigame.plugin.command.commands.MapMakerCommand;
 import org.minigame.plugin.command.commands.MinigameCommand;
 import org.minigame.running.RunningGame;
-import org.minigame.team.splitter.OrderedTeamSplitter;
 import org.minigame.utils.MinigameWorldGenerator;
 import org.minigame.utils.UniquieId;
 import org.spongepowered.api.Sponge;
@@ -60,6 +55,7 @@ public class MinigamePlugin {
     public static final String PLUGIN_DESCRIPTION = "A vast plugin that makes minigame plugin development quicker";
 
     private World minigamesWorld;
+    private UnplayableMap defaultLobbyMap;
 
     /*@Inject
     private PluginContainer container;*/
@@ -107,14 +103,19 @@ public class MinigamePlugin {
         return this.minigamesWorld;
     }
 
+    public UnplayableMap getDefaultLobbyMap(){
+        return this.defaultLobbyMap;
+    }
+
     private void registerIds(){
         register(
-                new LobbyType(),
-                new DefaultLobbyUnplayableMap(),
-                new PlayerLobbySpawnRequirement(),
-                new OrderedTeamSplitter(),
-                new LobbyMapGamemode()
+                DefaultRegisters.LOBBY_GAMEMODE,
+                DefaultRegisters.DEFAULT_LOBBY_MAP,
+                DefaultRegisters.LOBBY_SPAWN_REQUIREMENT,
+                DefaultRegisters.ORDERED_TEAM_SPLITTER,
+                DefaultRegisters.DEFAULT_LOBBY_MAP_GAMEMODE
         );
+        this.defaultLobbyMap = DefaultRegisters.DEFAULT_LOBBY_MAP;
     }
 
     public PluginContainer getContainer(){
@@ -259,12 +260,20 @@ public class MinigamePlugin {
         return IDS;
     }
 
-    public static <T extends UniquieId> Set<T> getUniquie(Class<T> class1){
+    public static <T extends UniquieId> Set<T> getUniquieSet(Class<T> class1){
         return (Set<T>) getUniquie().stream().filter(f -> class1.isInstance(f)).collect(Collectors.toSet());
     }
 
     public static <T extends UniquieId> Optional<T> getUniquie(String id){
         return (Optional<T>) getUniquie().stream().filter(f -> f.getId().equals(id)).findFirst();
+    }
+
+    public static <T extends UniquieId> Optional<T> getUniquie(Class<T> class1){
+        Iterator<T> iter = getUniquieSet(class1).iterator();
+        if(iter.hasNext()){
+            return Optional.of(iter.next());
+        }
+        return Optional.empty();
     }
 
     public static <T extends GamemodeType> Optional<MapGamemode<T>> getMapGamemodeCast(T gamemode, UnplayableMap map){
@@ -276,7 +285,7 @@ public class MinigamePlugin {
     }
 
     public static Optional<MapGamemode<? extends GamemodeType>> getMapGamemode(GamemodeType gamemode, UnplayableMap map){
-        Optional<MapGamemode> opMap = getUniquie(MapGamemode.class).stream().filter(m -> m.getGamemode().equals(gamemode)).filter(m -> m.getMap().equals(map)).findAny();
+        Optional<MapGamemode> opMap = getUniquieSet(MapGamemode.class).stream().filter(m -> m.getGamemode().equals(gamemode)).filter(m -> m.getMap().equals(map)).findAny();
         if(opMap.isPresent()){
             return Optional.of(opMap.get());
         }

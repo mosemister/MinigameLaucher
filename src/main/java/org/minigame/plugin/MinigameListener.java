@@ -32,7 +32,8 @@ public class MinigameListener {
         }
         RunningGame<? extends MinigameMap> game = opGame.get();
         if(opToGame.isPresent()){
-            if(opToGame.get().equals(game)){
+            RunningGame<? extends MinigameMap> toGame = opToGame.get();
+            if(toGame.equals(game)){
                 return;
             }
         }

@@ -3,6 +3,7 @@ package org.minigame.map.gamemode;
 import org.minigame.gamemode.GamemodeType;
 import org.minigame.map.requirement.MinigameProp;
 import org.minigame.map.requirement.MinigameRequirement;
+import org.minigame.map.requirement.PropType;
 import org.minigame.map.requirement.spawn.SpawnProp;
 import org.minigame.map.requirement.spawn.SpawnRequirement;
 import org.minigame.map.truemap.unplayable.UnplayableMap;
@@ -21,6 +22,10 @@ public interface MapGamemode <G extends GamemodeType> extends UniquieId {
 
     default <T extends MinigameProp> Set<T> getProps(MinigameRequirement<T> requirement){
         return (Set<T>)getProps().stream().filter(t -> requirement.getPropClass().isInstance(t)).filter(t -> requirement.isProp((T)t)).collect(Collectors.toSet());
+    }
+
+    default <T extends MinigameProp> Set<T> getProps(PropType<T> type){
+        return (Set<T>) getProps().stream().filter(p -> type.getPropClass().isInstance(p)).collect(Collectors.toSet());
     }
 
     default boolean meetsRequirements(){

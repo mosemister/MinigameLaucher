@@ -2,10 +2,8 @@ package org.minigame.running;
 
 import org.minigame.map.builder.MapBuilder;
 import org.minigame.map.gamemode.MapGamemode;
-import org.minigame.map.truemap.MinigameMap;
-import org.minigame.map.truemap.PositionableMap;
-import org.minigame.map.truemap.playable.PlayableMap;
 import org.minigame.map.truemap.playable.PlayingMap;
+import org.minigame.map.truemap.playable.ReadyToPlayMap;
 import org.minigame.plugin.MinigamePlugin;
 import org.spongepowered.api.entity.EntitySnapshot;
 import org.spongepowered.api.entity.living.player.Player;
@@ -22,14 +20,14 @@ public class AbstractRunningGame implements RunningLiveGame<PlayingMap>{
     protected MapGamemode mapGamemode;
     protected Map<UUID, EntitySnapshot> snapshot;
 
-    public AbstractRunningGame(PlayingMap map, MapGamemode gamemode){
+    public AbstractRunningGame(ReadyToPlayMap map, MapGamemode gamemode){
         this(map, gamemode, new HashMap<>());
     }
 
-    public AbstractRunningGame(PlayingMap map, MapGamemode gamemode, Map<UUID, EntitySnapshot> snapshot){
-        this.map = map;
+    public AbstractRunningGame(ReadyToPlayMap map, MapGamemode gamemode, Map<UUID, EntitySnapshot> snapshot){
         this.mapGamemode = gamemode;
         this.snapshot = snapshot;
+        this.map = map.generatePlayingMap(this).get();
     }
 
     @Override
@@ -52,7 +50,7 @@ public class AbstractRunningGame implements RunningLiveGame<PlayingMap>{
             new MapBuilder(map.getLocPos1(), getMap().getUnplayable()){
 
                 @Override
-                protected void onBuilt(PlayableMap map, Object plugin) {
+                protected void onBuilt(ReadyToPlayMap map, Object plugin) {
 
                 }
             }.clear(MinigamePlugin.getPlugin());

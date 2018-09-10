@@ -17,7 +17,6 @@ import org.spongepowered.api.text.Text;
 
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -60,7 +59,7 @@ public interface MapMaker extends PositionableMap, UnreadyMap {
     @Override
     @Deprecated
     default Set<MapGamemode> getSupportedGamemodes() {
-        return MinigamePlugin.getUniquie(MapGamemode.class).stream()
+        return MinigamePlugin.getUniquieSet(MapGamemode.class).stream()
                 .filter(f -> getSupportedGamemodesHashMap().entrySet().stream()
                         .filter(e -> !e.getValue())
                         .anyMatch(e -> e.getKey().equals(f.getGamemode())))

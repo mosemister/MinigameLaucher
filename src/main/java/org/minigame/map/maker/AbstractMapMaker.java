@@ -45,7 +45,7 @@ public class AbstractMapMaker implements MapMaker {
 
     @Override
     public boolean updateSupportedList() {
-        Map<GamemodeType, Boolean> values = MinigamePlugin.getUniquie(GamemodeType.class).stream()
+        Map<GamemodeType, Boolean> values = MinigamePlugin.getUniquieSet(GamemodeType.class).stream()
                 .filter(gm -> gm.getRequirements().stream()
                         .allMatch(this::meetsRequirement))
                 .filter(gm -> !getAllSupportedGamemodes().contains(gm))

@@ -34,7 +34,7 @@ public class MinigameCommand {
     public static final Text PLAYER = Text.of("player");
     private static final Text PLAYER_TO_INVITE = Text.of("player to invite");
     private static final Text WHOMS_GAME = Text.of("Whom's game");
-
+    
     static class LeaveGame implements CommandExecutor {
 
         @Override

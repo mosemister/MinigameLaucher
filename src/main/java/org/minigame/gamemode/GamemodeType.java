@@ -26,7 +26,7 @@ public interface GamemodeType extends UniquieId {
     }
 
     default Set<MapGamemode> getSupportedMapDetails(){
-        return MinigamePlugin.getUniquie(MapGamemode.class).stream().filter(mgm -> mgm.getGamemode().equals(this)).collect(Collectors.toSet());
+        return MinigamePlugin.getUniquieSet(MapGamemode.class).stream().filter(mgm -> mgm.getGamemode().equals(this)).collect(Collectors.toSet());
     }
 
 }

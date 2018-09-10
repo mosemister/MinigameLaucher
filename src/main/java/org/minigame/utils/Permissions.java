@@ -4,6 +4,7 @@ public interface Permissions {
 
     String CMD_MAPMAKER_REGISTER_USER_SPAWN_PROP = "minigame.cmd.mapmaker.register.spawn.user";
     String CMD_MAPMAKER_CREATE_MAP = "minigame.cmd.mapmaker.createmap";
+    String CMD_LOBBY_CREATE_PRIVATE = "minigame.cmd.lobby.create.private";
     String CMD_MINIGAME_INVITE_OVERRIDE_HOST = "minigame.cmd.minigame.invite.override";
     String CMD_MINIGAME_INVITE_TO_MAP = "minigame.cmd.minigame.invite";
     String CMD_MINIGAME_JOIN_MAP = "minigame.cmd.minigame.join";

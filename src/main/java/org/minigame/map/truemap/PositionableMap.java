@@ -28,6 +28,11 @@ public interface PositionableMap extends MinigameMap {
     default boolean isLocationPartOfMap(Vector3d vector){
         Vector3i vec1 = getPos1();
         Vector3i vec2 = getPos2();
+        System.out.println("Is location part of map: \n" +
+                " X: " + vec1.getX() + " >= " + vector.getX() + " <= " + vec2.getX() +
+                " Y: " + vec1.getZ() + " >= " + vector.getZ() + " <= " + vec2.getY() +
+                " Z: " + vec1.getZ() + " >= " + vector.getZ() + " <= " + vec2.getZ()
+        );
         if(!(vector.getX() >= vec1.getX())){
             return false;
         }

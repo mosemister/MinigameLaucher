@@ -34,7 +34,7 @@ public interface UnplayableMap extends UnreadyMap, UniquieId.UniquieColoredId {
 
     @Override
     default Set<MapGamemode> getSupportedGamemodes(){
-        return MinigamePlugin.getUniquie(MapGamemode.class).stream().filter(mgm -> mgm.getMap().equals(this)).collect(Collectors.toSet());
+        return MinigamePlugin.getUniquieSet(MapGamemode.class).stream().filter(mgm -> mgm.getMap().equals(this)).collect(Collectors.toSet());
     }
 
 }

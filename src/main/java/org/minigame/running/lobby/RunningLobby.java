@@ -5,9 +5,9 @@ import org.minigame.gamemode.GamemodeType;
 import org.minigame.gamemode.lobby.LobbyMapGamemode;
 import org.minigame.map.builder.MapBuilder;
 import org.minigame.map.gamemode.MapGamemode;
-import org.minigame.map.truemap.MinigameMap;
 import org.minigame.map.truemap.playable.PlayableMap;
 import org.minigame.map.truemap.playable.PlayingMap;
+import org.minigame.map.truemap.playable.ReadyToPlayMap;
 import org.minigame.map.truemap.unplayable.UnplayableMap;
 import org.minigame.plugin.MinigamePlugin;
 import org.minigame.running.AbstractRunningGame;
@@ -36,7 +36,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public abstract class RunningLobby extends AbstractRunningGame implements RunningScoreboardGame<PlayingMap>, AnytimeJoinRunningGame<PlayingMap> {
+public abstract class RunningLobby extends AbstractRunningGame implements RunningScoreboardGame<PlayingMap>, AnytimeJoinRunningGame.LiveMidJoinableGame<PlayingMap> {
 
     protected UnplayableMap mapToBeUnready;
     protected PlayableMap mapToBeReady;
@@ -45,7 +45,7 @@ public abstract class RunningLobby extends AbstractRunningGame implements Runnin
     private final Text OBJECTIVE_NAME_LIST = Text.builder("player connection").color(TextColors.AQUA).build();
     private final Text OBJECTIVE_UNDERNAME = Text.of("highscore undername");
 
-    public RunningLobby(PlayingMap map, LobbyMapGamemode gamemode) {
+    public RunningLobby(ReadyToPlayMap map, LobbyMapGamemode gamemode) {
         super(map, gamemode);
     }
 
@@ -107,7 +107,7 @@ public abstract class RunningLobby extends AbstractRunningGame implements Runnin
     public void buildMap(Location<World> locToBuild, Object plugin){
         new MapBuilder(locToBuild, this.mapToBeUnready) {
             @Override
-            protected void onBuilt(PlayableMap map, Object plugin) {
+            protected void onBuilt(ReadyToPlayMap map, Object plugin) {
                 RunningLobby.this.mapToBeReady = map;
             }
         }.build(plugin);
