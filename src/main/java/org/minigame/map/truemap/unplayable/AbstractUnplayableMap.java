@@ -1,13 +1,7 @@
 package org.minigame.map.truemap.unplayable;
 
-import com.flowpowered.math.vector.Vector3i;
-import org.spongepowered.api.block.BlockState;
-import org.spongepowered.api.block.BlockTypes;
 import org.spongepowered.api.plugin.PluginContainer;
 import org.spongepowered.api.text.Text;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public abstract class AbstractUnplayableMap implements UnplayableMap {
 

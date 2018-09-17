@@ -31,6 +31,8 @@ import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
 
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class LobbyCommand {
 
@@ -63,13 +65,47 @@ public class LobbyCommand {
                 new MapBuilder(loc, unplayableMap) {
                     @Override
                     protected void onBuilt(ReadyToPlayMap map, Object plugin) {
-                        System.out.println("Map built");
                         LobbyMapGamemode mapGamemode = (LobbyMapGamemode) opGMMap.get();
                         HostableLobby lobby = new HostableLobby(map, mapGamemode, host.getUniqueId());
                         lobby.register(host);
                         MinigamePlugin.register(lobby);
                         lobby.spawn(host);
-                        System.out.println("Spawned");
+                    }
+                }.build(MinigamePlugin.getPlugin());
+                return CommandResult.success();
+            }
+        }
+
+        private static class Public extends Create {
+
+            @Override
+            public CommandResult execute(CommandSource src, CommandContext args) throws CommandException {
+                Set<GamemodeType> set = MinigamePlugin.getUniquieSet(GamemodeType.class).stream().filter(g -> MinigamePlugin.getPlugin().getRunningGameBuilder(g).isPresent()).collect(Collectors.toSet());
+                if (set.isEmpty()) {
+                    throw new CommandException(Text.of("No Minigames found"));
+                }
+                UnplayableMap unplayableMap = MinigamePlugin.getPlugin().getDefaultLobbyMap();
+                LobbyType type = DefaultRegisters.LOBBY_GAMEMODE;
+                Optional<MapGamemode<? extends GamemodeType>> opGMMap = MinigamePlugin.getMapGamemode(type, unplayableMap);
+                if (!opGMMap.isPresent()) {
+                    throw new CommandException(Text.of("The default map for lobbies can not run the lobby gamemode. "));
+                }
+
+                Vector3i startingPos = MinigameWorldGenerator.MINIGAME_MAP_PLAYING_STARTING_POSITION;
+                Location<World> loc = MinigamePlugin.getPlugin().getMinigamesWorld().getLocation(startingPos);
+                src.sendMessage(Text.builder("Building lobby map, please wait").color(TextColors.AQUA).build());
+                new MapBuilder(loc, unplayableMap) {
+                    @Override
+                    protected void onBuilt(ReadyToPlayMap map, Object plugin) {
+                        LobbyMapGamemode mapGamemode = (LobbyMapGamemode) opGMMap.get();
+                        PublicLobby lobby = new PublicLobby(map, mapGamemode, set);
+                        if (src instanceof Player) {
+                            Player player = (Player) src;
+                            lobby.register(player);
+                            lobby.spawn(player);
+                        }
+                        MinigamePlugin.register(lobby);
+                        lobby.startCountdown();
                     }
                 }.build(MinigamePlugin.getPlugin());
                 return CommandResult.success();
@@ -159,12 +195,18 @@ public class LobbyCommand {
 
     public static CommandSpec createCreateCommand(){
         CommandSpec privateLobby = CommandSpec.builder()
-                .description(Text.of("Created a invite only lobby"))
+                .description(Text.of("Create a invite only lobby"))
                 .executor(new Create.Private())
                 .arguments(GenericArguments.playerOrSource(HOST))
-                .permission(Permissions.CMD_LOBBY_VOTE_GAMEMODE)
+                .permission(Permissions.CMD_LOBBY_CREATE_PRIVATE)
+                .build();
+        CommandSpec publicLobby = CommandSpec.builder()
+                .description(Text.of("Create a lobby anyone can join"))
+                .executor(new Create.Public())
+                .permission(Permissions.CMD_LOBBY_CREATE_PUBLIC)
                 .build();
         return CommandSpec.builder()
+                .child(publicLobby, "public", "pub")
                 .child(privateLobby, "private", "pri")
                 .build();
 

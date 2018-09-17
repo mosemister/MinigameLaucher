@@ -1,8 +1,6 @@
 package org.minigame.utils.snapshot;
 
 import com.flowpowered.math.vector.Vector3i;
-import org.minigame.plugin.MinigamePlugin;
-import org.spongepowered.api.Sponge;
 import org.spongepowered.api.data.DataContainer;
 import org.spongepowered.api.data.Property;
 import org.spongepowered.api.data.key.Key;
@@ -11,7 +9,6 @@ import org.spongepowered.api.data.merge.MergeFunction;
 import org.spongepowered.api.data.value.BaseValue;
 import org.spongepowered.api.data.value.immutable.ImmutableValue;
 import org.spongepowered.api.entity.*;
-import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.item.inventory.Inventory;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
@@ -47,7 +44,6 @@ public class EquipableEntitySnapshot implements EntitySnapshot {
             System.out.print(" : " + value);
             entity.offer(key, value);
         }
-        System.out.println();
     }
 
     public Map<Key<? extends BaseValue<? extends Object>>, Object> getOriginalKeys(){

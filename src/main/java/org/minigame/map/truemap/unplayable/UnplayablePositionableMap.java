@@ -6,10 +6,13 @@ import org.spongepowered.api.block.BlockState;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
 public interface UnplayablePositionableMap extends UnplayableMap, PositionableMap {
+
+    File getFile();
 
     @Override
     default Map<Vector3i, BlockState> getDefaultMapSnapshot(){

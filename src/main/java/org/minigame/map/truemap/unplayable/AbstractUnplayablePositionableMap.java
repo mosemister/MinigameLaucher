@@ -5,14 +5,18 @@ import org.minigame.plugin.MinigamePlugin;
 import org.spongepowered.api.plugin.PluginContainer;
 import org.spongepowered.api.text.Text;
 
+import java.io.File;
+
 public class AbstractUnplayablePositionableMap implements UnplayablePositionableMap {
 
     Vector3i pos1;
     Vector3i pos2;
     Text name;
+    File file;
 
-    public AbstractUnplayablePositionableMap(Text name, Vector3i pos1, Vector3i pos2){
+    public AbstractUnplayablePositionableMap(Text name, Vector3i pos1, Vector3i pos2, File file) {
         this.pos1 = pos1;
+        this.file = file;
         this.pos2 = pos2;
         this.name = name;
     }
@@ -35,5 +39,10 @@ public class AbstractUnplayablePositionableMap implements UnplayablePositionable
     @Override
     public Vector3i getPos2(){
         return this.pos2;
+    }
+
+    @Override
+    public File getFile() {
+        return this.file;
     }
 }

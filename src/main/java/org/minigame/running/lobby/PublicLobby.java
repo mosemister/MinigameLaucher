@@ -2,6 +2,7 @@ package org.minigame.running.lobby;
 
 import com.flowpowered.math.vector.Vector3i;
 import org.minigame.exception.GamemodeDoesNotSupportMapException;
+import org.minigame.exception.RunnableNotFoundException;
 import org.minigame.gamemode.GamemodeType;
 import org.minigame.gamemode.lobby.LobbyMapGamemode;
 import org.minigame.map.gamemode.MapGamemode;
@@ -27,9 +28,14 @@ public class PublicLobby extends RunningLobby implements AnytimeJoinRunningGame<
     protected TimeUnit timeUnitToVoteForMap;
     protected boolean canAcceptMorePlayers = true;
     protected boolean secondVote;
+    protected boolean secondAttempt;
 
     protected Map<GamemodeType, Set<UUID>> gamemodeVotes = new HashMap<>();
     protected Map<MapGamemode, Set<UUID>> mapVotes = new HashMap<>();
+
+    public PublicLobby(ReadyToPlayMap map, LobbyMapGamemode gamemode, Collection<GamemodeType> collection) {
+        this(map, gamemode, TimeUnit.MILLISECONDS, 10, TimeUnit.MILLISECONDS, 10, TimeUnit.MILLISECONDS, 10, collection);
+    }
 
     public PublicLobby(ReadyToPlayMap map,
                        LobbyMapGamemode gamemode,
@@ -78,6 +84,10 @@ public class PublicLobby extends RunningLobby implements AnytimeJoinRunningGame<
         return canAcceptMorePlayers;
     }
 
+    public void startCountdown() {
+        this.activateGamemodeVote();
+    }
+
     public boolean vote(GamemodeType type, UUID... uuids){
         Set<UUID> set = this.gamemodeVotes.get(type);
         if(set == null){
@@ -112,7 +122,7 @@ public class PublicLobby extends RunningLobby implements AnytimeJoinRunningGame<
 
     public Set<MapGamemode> getMapVoteResult(){
         int maxVotes = 0;
-        Set<MapGamemode> relatedMaps = new HashSet<>();
+        Set<MapGamemode> relatedMaps = new HashSet<>(this.mapVotes.keySet());
         for(Map.Entry<MapGamemode, Set<UUID>> entry : this.mapVotes.entrySet()){
             if(entry.getValue().size() > maxVotes){
                 maxVotes = entry.getValue().size();
@@ -128,7 +138,7 @@ public class PublicLobby extends RunningLobby implements AnytimeJoinRunningGame<
 
     public Set<GamemodeType> getGamemodeVoteResult(){
         int maxVotes = 0;
-        Set<GamemodeType> relatedGamemodes = new HashSet<>();
+        Set<GamemodeType> relatedGamemodes = new HashSet<>(this.gamemodeVotes.keySet());
         for(Map.Entry<GamemodeType, Set<UUID>> entry : this.gamemodeVotes.entrySet()){
             if(entry.getValue().size() > maxVotes){
                 maxVotes = entry.getValue().size();
@@ -169,10 +179,21 @@ public class PublicLobby extends RunningLobby implements AnytimeJoinRunningGame<
     private void processMapVoteResult(){
         Set<MapGamemode> votes = getMapVoteResult();
         if(votes.isEmpty()){
-            activateGamemodeVote();
+            if (secondAttempt) {
+                votes = getGamemodeToBe().get().getSupportedMapDetails();
+            } else {
+                System.err.println("Relaunched map votes voting");
+                this.secondAttempt = true;
+                activateGamemodeVote();
+                return;
+            }
+        }
+        Iterator<MapGamemode> iterator = votes.iterator();
+        if (!iterator.hasNext()) {
+            System.err.println("Failed to find any registered MapGamemode.");
             return;
         }
-        MapGamemode type = votes.iterator().next();
+        MapGamemode type = iterator.next();
         if(votes.size() >= 2){
             if(!this.secondVote) {
                 this.mapVotes.clear();
@@ -182,18 +203,34 @@ public class PublicLobby extends RunningLobby implements AnytimeJoinRunningGame<
                 return;
             }
         }
-        setGamemodeAndMap(type);
+        try {
+            setGamemodeAndMap(type);
+        } catch (RunnableNotFoundException e) {
+            e.printStackTrace();
+        }
         Vector3i pos = MinigamePlugin.getNextOpenSpaceForPlayingMap(type.getMap().getMinimumSize());
         Location<World> loc = MinigamePlugin.getPlugin().getMinigamesWorld().getLocation(pos);
-        buildMap(loc, MinigamePlugin.getPlugin());
-        startMinigame();
+        buildMap(loc, MinigamePlugin.getPlugin(), m -> {
+            displayMinigameInformation();
+            startMinigameForceSync();
+        });
 
     }
 
     private void processWait(){
         this.canAcceptMorePlayers = false;
-        Set<MapGamemode> set = this.mapVotes.keySet().stream().filter(k -> k.isSuitable(this)).collect(Collectors.toSet());
-        this.mapVotes.keySet().stream().filter(m -> set.stream().noneMatch(m1 -> m1.equals(m))).forEach(m -> this.mapVotes.remove(m));
+        List<MapGamemode> set = this.mapVotes.keySet().stream().filter(k -> k.isSuitable(this)).collect(Collectors.toList());
+        List<MapGamemode> setFinal = this.mapVotes.keySet().stream().filter(m -> {
+            boolean t = set.stream().anyMatch(m1 -> m1.equals(m));
+            return !t;
+        }).collect(Collectors.toList());
+        //List<MapGamemode> setFinal = this.mapVotes.keySet().stream().filter(m -> set.stream().noneMatch(m1 -> m1.equals(m))).collect(Collectors.toList());
+        for (int A = 0; A < setFinal.size(); A++) {
+            MapGamemode map = setFinal.get(A);
+            this.mapVotes.remove(map);
+        }
+        //this.mapVotes.keySet().stream().filter(m -> set.stream().noneMatch(m1 -> m1.equals(m))).forEach(m -> this.mapVotes.remove(m));
+        displayMinigameInformation();
         activateMapVote();
     }
 
@@ -217,8 +254,13 @@ public class PublicLobby extends RunningLobby implements AnytimeJoinRunningGame<
             setGamemodeToBe(type);
         } catch (GamemodeDoesNotSupportMapException e) {
             e.printStackTrace();
+        } catch (RunnableNotFoundException e) {
+            e.printStackTrace();
         }
-        type.getSupportedMapDetails().stream().forEach(md -> this.mapVotes.put(md, new HashSet<>()));
+        Set<MapGamemode> maps = type.getSupportedMapDetails();
+        maps.stream().forEach(md -> this.mapVotes.put(md, new HashSet<>()));
+        displayMinigameInformation();
+        this.secondVote = false;
         actvateWait();
     }
 }

@@ -18,6 +18,7 @@ import org.minigame.plugin.command.commands.LobbyCommand;
 import org.minigame.plugin.command.commands.MapMakerCommand;
 import org.minigame.plugin.command.commands.MinigameCommand;
 import org.minigame.running.RunningGame;
+import org.minigame.running.RunningGameBuilder;
 import org.minigame.utils.MinigameWorldGenerator;
 import org.minigame.utils.UniquieId;
 import org.spongepowered.api.Sponge;
@@ -35,6 +36,7 @@ import org.spongepowered.api.plugin.PluginContainer;
 import org.spongepowered.api.world.Locatable;
 import org.spongepowered.api.world.World;
 
+import javax.inject.Inject;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -57,11 +59,11 @@ public class MinigamePlugin {
     private World minigamesWorld;
     private UnplayableMap defaultLobbyMap;
 
-    /*@Inject
-    private PluginContainer container;*/
+    @Inject
+    private PluginContainer container;
 
     private static final Set<RunningGame<? extends MinigameMap>> RUNNING_GAMES = new HashSet<>();
-    private static final Map<MapGamemode<? extends GamemodeType>, Class<? extends RunningGame<? extends MinigameMap>>> RUNNING_GAME_CLASSES = new HashMap<>();
+    private static final Map<GamemodeType, RunningGameBuilder<? extends RunningGame<? extends PlayableMap>>> RUNNING_GAME_BUILDERS = new HashMap<>();
     private static final Set<CommandAdditions> COMMAND_MAPMAKER_REGISTER_ADDITIONS = new HashSet<>();
     private static final Set<UniquieId> IDS = new HashSet<>();
     private static final Map<GamemodeType, Class<? extends MapGamemode<? extends GamemodeType>>> GAMEMODE_MAP = new HashMap<>();
@@ -119,8 +121,7 @@ public class MinigamePlugin {
     }
 
     public PluginContainer getContainer(){
-        //return container;
-        return Sponge.getPluginManager().fromInstance(this).get();
+        return this.container;
     }
 
     public Map<List<String>, ? extends CommandSpec> getCommandMapmakerRegisterAdditions(){
@@ -129,13 +130,12 @@ public class MinigamePlugin {
         return map;
     }
 
-    public <T extends RunningGame<? extends GamemodeType>> Optional<Class<T>> getRunningGameClass(MapGamemode<? extends GamemodeType> class1){
-        Class<? extends RunningGame<? extends MinigameMap>> class2 = RUNNING_GAME_CLASSES.get(class1);
+    public Optional<RunningGameBuilder<? extends RunningGame<? extends PlayableMap>>> getRunningGameBuilder(GamemodeType gamemode) {
+        RunningGameBuilder<? extends RunningGame<? extends PlayableMap>> class2 = RUNNING_GAME_BUILDERS.get(gamemode);
         if(class2 == null){
             return Optional.empty();
         }
-        Class<T> class3 = (Class<T>) class2;
-        return Optional.of(class3);
+        return Optional.of(class2);
     }
 
     public static MinigamePlugin getPlugin(){
@@ -169,8 +169,8 @@ public class MinigamePlugin {
         RUNNING_GAMES.add(game);
     }
 
-    public static void register(MapGamemode map, Class<? extends RunningGame<? extends MinigameMap>> class1){
-        RUNNING_GAME_CLASSES.put(map, class1);
+    public static void register(GamemodeType gamemode, RunningGameBuilder<? extends RunningGame<? extends PlayableMap>> gameBuilder) {
+        RUNNING_GAME_BUILDERS.put(gamemode, gameBuilder);
     }
 
     public static void unregister(RunningGame<? extends MinigameMap> game){
@@ -181,9 +181,30 @@ public class MinigamePlugin {
         COMMAND_MAPMAKER_REGISTER_ADDITIONS.add(addition);
     }
 
+    public static Vector3i getNextOpenSpaceForMapMaking(Vector3i mapSize) {
+        Vector3i starting = MinigameWorldGenerator.MINIGAME_MAP_CREATOR_STARTING_POSITION;
+        for (RunningGame<? extends MinigameMap> game : getRunningGames()) {
+            MinigameMap map = game.getMap();
+            if (!(map instanceof PlayableMap)) {
+                continue;
+            }
+            PlayableMap playableMap = (PlayableMap) map;
+            Vector3i pos1 = playableMap.getPos1();
+            Vector3i pos2 = playableMap.getPos2();
+            if (starting.distance(pos1) < mapSize.getX()) {
+                starting = new Vector3i(pos2.getX() + 1, starting.getY(), starting.getZ());
+                continue;
+            }
+            break;
+        }
+        return starting;
+    }
+
     public static Vector3i getNextOpenSpaceForPlayingMap(Vector3i mapSize){
         Vector3i starting = MinigameWorldGenerator.MINIGAME_MAP_PLAYING_STARTING_POSITION;
         for(RunningGame<? extends MinigameMap> game : getRunningGames()){
+            System.out.println("\t Current starting is: " + starting.getX() + ", " + starting.getY() + ", " + starting.getZ());
+            System.out.println("\t\t - " + game.getMap().getName().toPlain());
             MinigameMap map = game.getMap();
             if(!(map instanceof PlayableMap)){
                 continue;
@@ -191,12 +212,16 @@ public class MinigamePlugin {
             PlayableMap playableMap = (PlayableMap) map;
             Vector3i pos1 = playableMap.getPos1();
             Vector3i pos2 = playableMap.getPos2();
-            if(starting.distance(pos1) < mapSize.getX()){
+            float distance = starting.distance(pos1);
+            System.out.println("\t\t\t :- Distance " + distance + " Map size X: " + mapSize.getX() + " Pos 1 X: " + pos1.getX() + " Pos 2 X: " + pos2.getX() + " Map: " + playableMap.getClass().getName());
+            if (distance < mapSize.getX()) {
+                System.out.println("\t\tskipped");
                 starting = new Vector3i(pos2.getX() + 1, starting.getY(), starting.getZ());
                 continue;
             }
             break;
         }
+        System.out.println("\t Returning starting as " + starting.getX() + ", " + starting.getY() + ", " + starting.getZ());
         return starting;
     }
 

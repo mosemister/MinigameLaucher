@@ -1,6 +1,7 @@
 package org.minigame.running.lobby;
 
 import org.minigame.exception.GamemodeDoesNotSupportMapException;
+import org.minigame.exception.RunnableNotFoundException;
 import org.minigame.gamemode.GamemodeType;
 import org.minigame.gamemode.lobby.LobbyMapGamemode;
 import org.minigame.map.builder.MapBuilder;
@@ -12,11 +13,19 @@ import org.minigame.map.truemap.unplayable.UnplayableMap;
 import org.minigame.plugin.MinigamePlugin;
 import org.minigame.running.AbstractRunningGame;
 import org.minigame.running.RunningGame;
+import org.minigame.running.RunningGameBuilder;
+import org.minigame.running.RunningLiveGame;
 import org.minigame.running.midjoinable.AnytimeJoinRunningGame;
 import org.minigame.running.score.RunningScoreboardGame;
+import org.minigame.team.LobbyGroup;
+import org.minigame.team.Party;
+import org.minigame.team.Team;
+import org.minigame.team.splitter.TeamSplitter;
 import org.spongepowered.api.Sponge;
+import org.spongepowered.api.boss.BossBarColors;
+import org.spongepowered.api.boss.BossBarOverlays;
+import org.spongepowered.api.boss.ServerBossBar;
 import org.spongepowered.api.data.key.Keys;
-import org.spongepowered.api.entity.EntitySnapshot;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.scoreboard.Score;
 import org.spongepowered.api.scoreboard.Scoreboard;
@@ -28,19 +37,16 @@ import org.spongepowered.api.text.format.TextColors;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public abstract class RunningLobby extends AbstractRunningGame implements RunningScoreboardGame<PlayingMap>, AnytimeJoinRunningGame.LiveMidJoinableGame<PlayingMap> {
 
     protected UnplayableMap mapToBeUnready;
-    protected PlayableMap mapToBeReady;
+    protected ReadyToPlayMap mapToBeReady;
     protected GamemodeType gamemodeToBe;
+    protected ServerBossBar bar;
 
     private final Text OBJECTIVE_NAME_LIST = Text.builder("player connection").color(TextColors.AQUA).build();
     private final Text OBJECTIVE_UNDERNAME = Text.of("highscore undername");
@@ -61,6 +67,22 @@ public abstract class RunningLobby extends AbstractRunningGame implements Runnin
         return Optional.ofNullable(this.gamemodeToBe);
     }
 
+    public void displayMinigameInformation() {
+        if (bar != null) {
+            bar.removePlayers(bar.getPlayers());
+        }
+        String gamemode = "Unknown";
+        String map = "Unknown";
+        if (getGamemodeToBe().isPresent()) {
+            gamemode = getGamemodeToBe().get().getIdName();
+        }
+        if (getUnreadyMapToBe().isPresent()) {
+            map = getUnreadyMapToBe().get().getIdName();
+        }
+        bar = ServerBossBar.builder().overlay(BossBarOverlays.PROGRESS).percent(0).color(BossBarColors.GREEN).name(Text.of("MinigameInfo: Gamemode: " + gamemode + " Map: " + map)).build();
+        bar.addPlayers(getPlayers());
+    }
+
     public Optional<MapGamemode<? extends GamemodeType>> getMapGamemodeToBe(){
         if(this.gamemodeToBe == null){
             return Optional.empty();
@@ -71,22 +93,28 @@ public abstract class RunningLobby extends AbstractRunningGame implements Runnin
         return MinigamePlugin.getMapGamemode(this.gamemodeToBe, this.mapToBeUnready);
     }
 
-    public RunningLobby setGamemodeAndMap(MapGamemode mg){
+    public RunningLobby setGamemodeAndMap(MapGamemode mg) throws RunnableNotFoundException {
+        if (!MinigamePlugin.getPlugin().getRunningGameBuilder(mg.getGamemode()).isPresent()) {
+            throw new RunnableNotFoundException(mg.getGamemode());
+        }
         this.mapToBeUnready = mg.getMap();
         this.gamemodeToBe = mg.getGamemode();
         this.mapToBeReady = null;
         return this;
     }
 
-    public RunningLobby setGamemodeToBe(GamemodeType type) throws GamemodeDoesNotSupportMapException {
+    public RunningLobby setGamemodeToBe(GamemodeType type) throws GamemodeDoesNotSupportMapException, RunnableNotFoundException {
         if(mapToBeUnready != null && (!mapToBeUnready.isSupportedGamemode(type))){
             throw new GamemodeDoesNotSupportMapException(type, mapToBeReady);
+        }
+        if (!MinigamePlugin.getPlugin().getRunningGameBuilder(type).isPresent()) {
+            throw new RunnableNotFoundException(type);
         }
         this.gamemodeToBe = type;
         return this;
     }
 
-    public RunningLobby setMap(PlayableMap map) throws GamemodeDoesNotSupportMapException{
+    public RunningLobby setMap(ReadyToPlayMap map) throws GamemodeDoesNotSupportMapException {
         if(gamemodeToBe != null && !map.isSupportedGamemode(this.gamemodeToBe)){
             throw new GamemodeDoesNotSupportMapException(this.gamemodeToBe, map);
         }
@@ -104,13 +132,31 @@ public abstract class RunningLobby extends AbstractRunningGame implements Runnin
         return this;
     }
 
-    public void buildMap(Location<World> locToBuild, Object plugin){
+    public void buildMap(Location<World> locToBuild, Object plugin, Consumer<ReadyToPlayMap> process) {
         new MapBuilder(locToBuild, this.mapToBeUnready) {
             @Override
             protected void onBuilt(ReadyToPlayMap map, Object plugin) {
                 RunningLobby.this.mapToBeReady = map;
+                process.accept(map);
+
             }
         }.build(plugin);
+    }
+
+    public Collection<Team> sortTeams(RunningLiveGame<? extends PlayableMap> game) {
+        TeamSplitter splitter = game.getTeamSplitter();
+        System.out.println("TeamSplitter: " + splitter.getId());
+        Set<Party> parties = new HashSet<>();
+        getPlayers().stream().forEach(p -> parties.add(new Party(p)));
+        System.out.println("Parties: " + parties.size());
+        LobbyGroup lobbyGroup = new LobbyGroup();
+        parties.stream().forEach(p -> lobbyGroup.addParties(p));
+        System.out.println("Lobbygroup: " + lobbyGroup.getParties().size());
+        return game.splitTeams(splitter, lobbyGroup);
+    }
+
+    public void startMinigameForceSync() {
+        Sponge.getScheduler().createTaskBuilder().execute(() -> startMinigame()).submit(MinigamePlugin.getPlugin());
     }
 
     public synchronized void startMinigame(){
@@ -127,35 +173,61 @@ public abstract class RunningLobby extends AbstractRunningGame implements Runnin
             return;
         }
         MapGamemode<? extends GamemodeType> mapGamemode = getMapGamemodeToBe().get();
-        Optional<Class<RunningGame<? extends GamemodeType>>> oprgClass = MinigamePlugin.getPlugin().getRunningGameClass(mapGamemode);
+        Optional<RunningGameBuilder<? extends RunningGame<? extends PlayableMap>>> oprgClass = MinigamePlugin.getPlugin().getRunningGameBuilder(this.gamemodeToBe);
         if(!oprgClass.isPresent()){
             System.err.println("Cannot find a runningGame associated with " + mapGamemode.getId());
             return;
         }
-        Class<RunningGame<? extends GamemodeType>> rgClass = oprgClass.get();
-        Constructor<RunningGame<? extends GamemodeType>> constructor = null;
-        try {
-            constructor = rgClass.getConstructor(PlayingMap.class, this.gamemodeToBe.getClass(), this.snapshot.getClass());
-        } catch (NoSuchMethodException e) {
-            try{
-                constructor = rgClass.getConstructor(PlayingMap.class, GamemodeType.class, this.snapshot.getClass());
-            }catch(NoSuchMethodException e1){
-                System.err.println("Could not find the constructor of " + rgClass.getSimpleName() + " (PlayingMap, " + this.gamemodeToBe.getClass() + ", " + this.snapshot.getClass().getSimpleName() + "<" + UUID.class.getSimpleName() + "," + EntitySnapshot.class.getSimpleName() + ">) in " + rgClass.getSimpleName());
-                e.printStackTrace();
-            }
-        }
-        RunningGame<? extends GamemodeType> runningGame = null;
-        try {
-            runningGame = constructor.newInstance(this.mapToBeReady, this.gamemodeToBe, this.snapshot);
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
-        }
-        MinigamePlugin.register(runningGame);
+        this.bar.removePlayers(this.bar.getPlayers());
+        RunningGameBuilder<? extends RunningGame<? extends PlayableMap>> rgClass = oprgClass.get();
+        RunningLiveGame<? extends PlayableMap> game = rgClass.createGame(this.mapToBeReady, getMapGamemodeToBe().get(), this.snapshot);
+        MinigamePlugin.register(game);
+        System.out.println("Sorting teams");
+        Collection<Team> teams = sortTeams(game);
+        System.out.println("Initializing");
+        game.initate(teams);
+        System.out.println("Players deregistered from lobby");
+        this.snapshot = new HashMap<>();
+        System.out.println("spawning players");
+        game.spawnPlayers();
+        System.out.println("starting game");
+        game.start();
+        new MapBuilder(getMap()) {
+            @Override
+            protected void onBuilt(ReadyToPlayMap map, Object plugin) {
 
+            }
+        }.clear(MinigamePlugin.getPlugin());
+    }
+
+    @Deprecated
+    @Override
+    public void initate(Collection<Team> teams) {
+
+    }
+
+    @Deprecated
+    @Override
+    public Collection<Team> splitTeams(TeamSplitter splitter, LobbyGroup group) {
+        return null;
+    }
+
+    @Deprecated
+    @Override
+    public TeamSplitter getTeamSplitter() {
+        return null;
+    }
+
+    @Deprecated
+    @Override
+    public void spawnPlayers() {
+
+    }
+
+    @Deprecated
+    @Override
+    public void start() {
+        startMinigameForceSync();
     }
 
     @Override

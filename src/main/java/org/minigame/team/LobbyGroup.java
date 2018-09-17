@@ -9,11 +9,11 @@ public class LobbyGroup implements PlayerGroup.PartyGroup {
 
     Team team = new Team();
 
-    public Set<Team> SplitPlayersIntoTeamsByMaxTeamSize(int maxTeamSize, TeamSplitter splitter){
+    public Set<Team> splitPlayersIntoTeamsByMaxTeamSize(int maxTeamSize, TeamSplitter splitter) {
         return splitter.splitPlayersBySize(this.team, maxTeamSize);
     }
 
-    public Set<Team> SplitPlayersIntoTeamsByAmountOfTeams(int maxTeams, TeamSplitter splitter){
+    public Set<Team> splitPlayersIntoTeamsByAmountOfTeams(int maxTeams, TeamSplitter splitter) {
         return splitter.splitTeamsByTeamCount(this.team, maxTeams);
     }
 

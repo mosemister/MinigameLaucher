@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class AbstractRunningGame implements RunningLiveGame<PlayingMap>{
+public abstract class AbstractRunningGame implements RunningLiveGame<PlayingMap> {
 
     protected PlayingMap map;
     protected MapGamemode mapGamemode;
@@ -46,6 +46,7 @@ public class AbstractRunningGame implements RunningLiveGame<PlayingMap>{
         this.snapshot.remove(player.getUniqueId());
         snapshot.restore();
         if(getPlayers().isEmpty()){
+            System.out.println("Unregistering. Clearing");
             MinigamePlugin.unregister(this);
             new MapBuilder(map.getLocPos1(), getMap().getUnplayable()){
 
