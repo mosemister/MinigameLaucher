@@ -23,12 +23,14 @@ import java.util.concurrent.TimeUnit;
 public abstract class MapBuilder {
 
     protected abstract void onBuilt(ReadyToPlayMap map, Object plugin);
+    protected abstract void onClear();
+    protected abstract void onStackFinish(int totalStack, int current, Map<Location<World>, BlockState> written);
 
-    private Location<World> location;
+    protected Location<World> location;
     protected int maxStackedSize = 100;
     protected int delay = 1;
     protected TimeUnit delayUnit = TimeUnit.MICROSECONDS;
-    private UnplayableMap mapToCopy;
+    protected UnplayableMap mapToCopy;
 
     public MapBuilder(PlayableMap map) {
         this(map.getLocPos1(), map.getUnplayable());
@@ -84,12 +86,9 @@ public abstract class MapBuilder {
     }
 
     public void clear(Object plugin) {
-        System.out.println("Clearing map");
         World world = MinigamePlugin.getPlugin().getMinigamesWorld();
         Vector3i pos1 = location.getBlockPosition();
         Vector3i pos2 = pos1.clone().add(this.mapToCopy.getMinimumSize());
-        System.out.println("\t Pos1: " + pos1.getX() + ", " + pos1.getY() + ", " + pos1.getZ());
-        System.out.println("\t Pos2: " + pos2.getX() + ", " + pos2.getY() + ", " + pos2.getZ());
         for (int x1 = pos1.getX(); x1 < pos2.getX(); x1++) {
             final int x = x1;
             for (int y1 = pos1.getY(); y1 < pos2.getY(); y1++) {
@@ -98,7 +97,10 @@ public abstract class MapBuilder {
                     for (int z = pos1.getZ(); z < pos2.getZ(); z++) {
                         world.getLocation(x, y, z).setBlockType(BlockTypes.AIR, BlockChangeFlags.NONE);
                     }
-                }).delay(this.delay + (x - pos1.getX()) + (y - pos1.getY()), this.delayUnit).submit(plugin);
+                    if(((x + 1) == pos2.getX()) && ((y + 1) == pos2.getY())){
+                        this.onClear();
+                    }
+                }).delay(this.delay * ((x - pos1.getX()) + (y - pos1.getY())), this.delayUnit).submit(plugin);
             }
         }
 
@@ -117,9 +119,10 @@ public abstract class MapBuilder {
 
         //STORED
 
-        for (int A = 0; A < stores.size(); A++) {
+        int stored = stores.size();
+        for (int A = 0; A < stored; A++) {
+            final int AFin = A;
             Map<Location<World>, BlockState> map = stores.get(A);
-            //for(Map<Location<World>, BlockState> map : stores){
             for (Location<World> loc : map.keySet()) {
                 if (loc.getBlockX() > pos2.getX()) {
                     pos2 = new Vector3i(loc.getBlockX(), pos2.getY(), pos2.getZ());
@@ -131,15 +134,25 @@ public abstract class MapBuilder {
                     pos2 = new Vector3i(pos2.getX(), pos2.getY(), loc.getBlockZ());
                 }
             }
+            final Vector3i pos2Final = pos2;
             Sponge.getScheduler()
                     .createTaskBuilder()
-                    .execute(() -> map.entrySet().stream()
-                            .forEach(e -> e.getKey().setBlock(e.getValue(), BlockChangeFlags.NONE)))
-                    .delay(delay + A, delayUnit).submit(plugin);
-            if ((A + 1) == stores.size()) {
-                AbstractPlayableMap playable = new AbstractPlayableMap(this.mapToCopy, pos1, pos2);
-                this.onBuilt(playable, plugin);
-            }
+                    .execute(() -> {
+                        /*map.entrySet().stream()
+                                .forEach(e -> e.getKey().setBlock(e.getValue(), BlockChangeFlags.NONE));*/
+                        for(Map.Entry<Location<World>, BlockState> entry : map.entrySet()){
+                            Location<World> loc = entry.getKey();
+                            BlockState state = entry.getValue();
+                            loc.setBlock(state, BlockChangeFlags.NONE);
+                        }
+                        this.onStackFinish(stored, AFin, map);
+                        if ((AFin + 1) == stored) {
+                            AbstractPlayableMap playable = new AbstractPlayableMap(this.mapToCopy, pos1, pos2Final);
+                            this.onBuilt(playable, plugin);
+                        }
+                    })
+                    .delay(delay * A, delayUnit)
+                    .submit(plugin);
         }
     }
 }

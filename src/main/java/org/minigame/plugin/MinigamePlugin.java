@@ -111,6 +111,7 @@ public class MinigamePlugin {
 
     private void registerIds(){
         register(
+                DefaultRegisters.CLOSEST_SPAWN_LOCATION_OUT_OF_BOUND_HANDLER,
                 DefaultRegisters.LOBBY_GAMEMODE,
                 DefaultRegisters.DEFAULT_LOBBY_MAP,
                 DefaultRegisters.LOBBY_SPAWN_REQUIREMENT,
@@ -203,8 +204,6 @@ public class MinigamePlugin {
     public static Vector3i getNextOpenSpaceForPlayingMap(Vector3i mapSize){
         Vector3i starting = MinigameWorldGenerator.MINIGAME_MAP_PLAYING_STARTING_POSITION;
         for(RunningGame<? extends MinigameMap> game : getRunningGames()){
-            System.out.println("\t Current starting is: " + starting.getX() + ", " + starting.getY() + ", " + starting.getZ());
-            System.out.println("\t\t - " + game.getMap().getName().toPlain());
             MinigameMap map = game.getMap();
             if(!(map instanceof PlayableMap)){
                 continue;
@@ -213,15 +212,12 @@ public class MinigamePlugin {
             Vector3i pos1 = playableMap.getPos1();
             Vector3i pos2 = playableMap.getPos2();
             float distance = starting.distance(pos1);
-            System.out.println("\t\t\t :- Distance " + distance + " Map size X: " + mapSize.getX() + " Pos 1 X: " + pos1.getX() + " Pos 2 X: " + pos2.getX() + " Map: " + playableMap.getClass().getName());
             if (distance < mapSize.getX()) {
-                System.out.println("\t\tskipped");
                 starting = new Vector3i(pos2.getX() + 1, starting.getY(), starting.getZ());
                 continue;
             }
             break;
         }
-        System.out.println("\t Returning starting as " + starting.getX() + ", " + starting.getY() + ", " + starting.getZ());
         return starting;
     }
 

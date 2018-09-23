@@ -5,10 +5,13 @@ import org.minigame.map.gamemode.MapGamemode;
 import org.minigame.map.truemap.playable.PlayingMap;
 import org.minigame.map.truemap.playable.ReadyToPlayMap;
 import org.minigame.plugin.MinigamePlugin;
+import org.spongepowered.api.block.BlockState;
 import org.spongepowered.api.entity.EntitySnapshot;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.format.TextColors;
+import org.spongepowered.api.world.Location;
+import org.spongepowered.api.world.World;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -46,15 +49,7 @@ public abstract class AbstractRunningGame implements RunningLiveGame<PlayingMap>
         this.snapshot.remove(player.getUniqueId());
         snapshot.restore();
         if(getPlayers().isEmpty()){
-            System.out.println("Unregistering. Clearing");
-            MinigamePlugin.unregister(this);
-            new MapBuilder(map.getLocPos1(), getMap().getUnplayable()){
-
-                @Override
-                protected void onBuilt(ReadyToPlayMap map, Object plugin) {
-
-                }
-            }.clear(MinigamePlugin.getPlugin());
+            end(false);
         }
         if(wasKicked){
             player.sendMessage(Text.builder("You were kicked from the minigame").color(TextColors.AQUA).build());

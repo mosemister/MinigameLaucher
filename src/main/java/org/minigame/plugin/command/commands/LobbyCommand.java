@@ -17,6 +17,7 @@ import org.minigame.running.lobby.HostableLobby;
 import org.minigame.running.lobby.PublicLobby;
 import org.minigame.utils.MinigameWorldGenerator;
 import org.minigame.utils.Permissions;
+import org.spongepowered.api.block.BlockState;
 import org.spongepowered.api.command.CommandException;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
@@ -30,6 +31,7 @@ import org.spongepowered.api.text.format.TextColors;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -71,6 +73,16 @@ public class LobbyCommand {
                         MinigamePlugin.register(lobby);
                         lobby.spawn(host);
                     }
+
+                    @Override
+                    protected void onClear() {
+
+                    }
+
+                    @Override
+                    protected void onStackFinish(int totalStack, int current, Map<Location<World>, BlockState> written) {
+
+                    }
                 }.build(MinigamePlugin.getPlugin());
                 return CommandResult.success();
             }
@@ -106,6 +118,16 @@ public class LobbyCommand {
                         }
                         MinigamePlugin.register(lobby);
                         lobby.startCountdown();
+                    }
+
+                    @Override
+                    protected void onClear() {
+
+                    }
+
+                    @Override
+                    protected void onStackFinish(int totalStack, int current, Map<Location<World>, BlockState> written) {
+
                     }
                 }.build(MinigamePlugin.getPlugin());
                 return CommandResult.success();

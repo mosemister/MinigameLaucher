@@ -1,6 +1,7 @@
 package org.minigame.map.gamemode;
 
 import org.minigame.gamemode.GamemodeType;
+import org.minigame.map.gamemode.outofboundhandlers.OutOfBoundsHandler;
 import org.minigame.map.requirement.MinigameProp;
 import org.minigame.map.requirement.MinigameRequirement;
 import org.minigame.map.requirement.PropType;
@@ -10,6 +11,7 @@ import org.minigame.map.truemap.unplayable.UnplayableMap;
 import org.minigame.running.lobby.RunningLobby;
 import org.minigame.utils.UniquieId;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -18,6 +20,7 @@ public interface MapGamemode <G extends GamemodeType> extends UniquieId {
     Set<MinigameProp> getProps();
     UnplayableMap getMap();
     G getGamemode();
+    Optional<OutOfBoundsHandler> getOutOfBoundsHandler();
     boolean isSuitable(RunningLobby lobby);
 
     default <T extends MinigameProp> Set<T> getProps(MinigameRequirement<T> requirement){

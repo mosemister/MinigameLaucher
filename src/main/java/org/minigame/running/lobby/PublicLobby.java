@@ -34,7 +34,7 @@ public class PublicLobby extends RunningLobby implements AnytimeJoinRunningGame<
     protected Map<MapGamemode, Set<UUID>> mapVotes = new HashMap<>();
 
     public PublicLobby(ReadyToPlayMap map, LobbyMapGamemode gamemode, Collection<GamemodeType> collection) {
-        this(map, gamemode, TimeUnit.MILLISECONDS, 10, TimeUnit.MILLISECONDS, 10, TimeUnit.MILLISECONDS, 10, collection);
+        this(map, gamemode, TimeUnit.SECONDS, 30, TimeUnit.MINUTES, 1, TimeUnit.SECONDS, 30, collection);
     }
 
     public PublicLobby(ReadyToPlayMap map,
@@ -212,7 +212,7 @@ public class PublicLobby extends RunningLobby implements AnytimeJoinRunningGame<
         Location<World> loc = MinigamePlugin.getPlugin().getMinigamesWorld().getLocation(pos);
         buildMap(loc, MinigamePlugin.getPlugin(), m -> {
             displayMinigameInformation();
-            startMinigameForceSync();
+            Sponge.getScheduler().createTaskBuilder().execute(() -> startMinigameForceSync()).delay(5, TimeUnit.SECONDS).submit(MinigamePlugin.getPlugin());
         });
 
     }

@@ -1,0 +1,12 @@
+[{
+  "modid": "minigame_loader",
+  "name": "Minigame Loader",
+  "version": "SNAPSHOT-0.1",
+  "description": "Handles the extra things that minigames use such as lobbies and maps",
+  "authorList": [
+    "mosemister"
+  ],
+  "dependencies": [
+    "spongeapi@7.0.0"
+  ]
+}]

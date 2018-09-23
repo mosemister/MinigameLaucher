@@ -22,11 +22,13 @@ import org.minigame.team.Party;
 import org.minigame.team.Team;
 import org.minigame.team.splitter.TeamSplitter;
 import org.spongepowered.api.Sponge;
+import org.spongepowered.api.block.BlockState;
 import org.spongepowered.api.boss.BossBarColors;
 import org.spongepowered.api.boss.BossBarOverlays;
 import org.spongepowered.api.boss.ServerBossBar;
 import org.spongepowered.api.data.key.Keys;
 import org.spongepowered.api.entity.living.player.Player;
+import org.spongepowered.api.entity.living.player.gamemode.GameModes;
 import org.spongepowered.api.scoreboard.Score;
 import org.spongepowered.api.scoreboard.Scoreboard;
 import org.spongepowered.api.scoreboard.critieria.Criteria;
@@ -140,18 +142,26 @@ public abstract class RunningLobby extends AbstractRunningGame implements Runnin
                 process.accept(map);
 
             }
+
+            @Override
+            protected void onClear() {
+
+            }
+
+            @Override
+            protected void onStackFinish(int totalStack, int current, Map<Location<World>, BlockState> written) {
+                float percent = (int)((current + 100.0f / totalStack));
+                RunningLobby.this.bar.setPercent(percent/100);
+            }
         }.build(plugin);
     }
 
     public Collection<Team> sortTeams(RunningLiveGame<? extends PlayableMap> game) {
         TeamSplitter splitter = game.getTeamSplitter();
-        System.out.println("TeamSplitter: " + splitter.getId());
         Set<Party> parties = new HashSet<>();
         getPlayers().stream().forEach(p -> parties.add(new Party(p)));
-        System.out.println("Parties: " + parties.size());
         LobbyGroup lobbyGroup = new LobbyGroup();
         parties.stream().forEach(p -> lobbyGroup.addParties(p));
-        System.out.println("Lobbygroup: " + lobbyGroup.getParties().size());
         return game.splitTeams(splitter, lobbyGroup);
     }
 
@@ -182,22 +192,50 @@ public abstract class RunningLobby extends AbstractRunningGame implements Runnin
         RunningGameBuilder<? extends RunningGame<? extends PlayableMap>> rgClass = oprgClass.get();
         RunningLiveGame<? extends PlayableMap> game = rgClass.createGame(this.mapToBeReady, getMapGamemodeToBe().get(), this.snapshot);
         MinigamePlugin.register(game);
-        System.out.println("Sorting teams");
         Collection<Team> teams = sortTeams(game);
-        System.out.println("Initializing");
         game.initate(teams);
-        System.out.println("Players deregistered from lobby");
         this.snapshot = new HashMap<>();
-        System.out.println("spawning players");
         game.spawnPlayers();
-        System.out.println("starting game");
         game.start();
         new MapBuilder(getMap()) {
             @Override
             protected void onBuilt(ReadyToPlayMap map, Object plugin) {
 
             }
+
+            @Override
+            protected void onClear() {
+
+            }
+
+            @Override
+            protected void onStackFinish(int totalStack, int current, Map<Location<World>, BlockState> written) {
+
+            }
         }.clear(MinigamePlugin.getPlugin());
+    }
+
+    @Override
+    public boolean spawn(Player player){
+        boolean result = AnytimeJoinRunningGame.LiveMidJoinableGame.super.spawn(player);
+        if(!result){
+            return false;
+        }
+        player.getInventory().clear();
+        player.offer(Keys.INVULNERABLE, true);
+        player.offer(Keys.WALKING_SPEED, 0.1);
+        player.offer(Keys.GAME_MODE, GameModes.ADVENTURE);
+        player.offer(Keys.CAN_FLY, false);
+        player.offer(Keys.EXPERIENCE_LEVEL, 0);
+        player.offer(Keys.EXPERIENCE_SINCE_LEVEL, 0);
+        player.offer(Keys.FOOD_LEVEL, 20);
+        player.offer(Keys.GLOWING, false);
+        player.offer(Keys.HAS_GRAVITY, true);
+        player.offer(Keys.INVISIBLE, false);
+        player.offer(Keys.MAX_AIR, 20);
+        player.offer(Keys.MAX_HEALTH, 20.0);
+        player.offer(Keys.VANISH, false);
+        return true;
     }
 
     @Deprecated
